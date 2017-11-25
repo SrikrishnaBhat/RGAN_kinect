@@ -66,6 +66,7 @@ G_sample = model.generator(Z, **generator_settings, reuse=True, c=CG)
 # frequency to do visualisations
 vis_freq = max(14000//num_samples, 1)
 eval_freq = max(7000//num_samples, 1)
+eval_freq=1
 
 # get heuristic bandwidth for mmd kernel from evaluation samples
 heuristic_sigma_training = median_pairwise_distance(samples['vali'])
