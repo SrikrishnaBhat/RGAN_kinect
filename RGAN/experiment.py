@@ -15,6 +15,8 @@ from time import time
 from math import floor
 from mmd import rbf_mmd2, median_pairwise_distance, mix_rbf_mmd2_and_ratio
 
+import gc
+
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 # --- get settings --- #
@@ -167,6 +169,7 @@ train_settings = dict((k, settings[k]) for k in train_vars)
 t0 = time()
 best_epoch = 0
 print('epoch\ttime\tD_loss\tG_loss\tmmd2\tthat\tpdf_sample\tpdf_real')
+mmd_calc = None
 for epoch in range(num_epochs):
     D_loss_curr, G_loss_curr = model.train_epoch(epoch, samples['train'], labels['train'],
                                         sess, Z, X, CG, CD, CS,
@@ -214,12 +217,20 @@ for epoch in range(num_epochs):
         that_change = sigma_opt_thresh*2
         old_that = 0
         while that_change > sigma_opt_thresh and sigma_iter < sigma_opt_iter:
-            new_sigma, that_np, _ = sess.run([sigma, that, sigma_solver], feed_dict={eval_real_PH: eval_eval_real, eval_sample_PH: eval_eval_sample})
+            sess.run(sigma_solver, feed_dict={eval_real_PH: eval_eval_real, eval_sample_PH: eval_eval_sample})
+            sess.run(sigma)
+            that_np = sess.run(that, feed_dict={eval_real_PH: eval_eval_real, eval_sample_PH: eval_eval_sample})
             that_change = np.abs(that_np - old_that)
             old_that = that_np
             sigma_iter += 1
-        opt_sigma = sess.run(sigma)
-        mmd2, that_np = sess.run(mix_rbf_mmd2_and_ratio(eval_test_real, eval_test_sample,biased=False, sigmas=sigma))
+        #opt_sigma = sess.run(sigma)
+        print((eval_test_real.shape, eval_test_sample.shape))
+        if epoch == 0:
+            eval_test_real_PH = tf.placeholder(tf.float32, eval_test_real.shape)
+            eval_test_sample_PH = tf.placeholder(tf.float32, eval_test_sample.shape)
+            mmd_calc = mix_rbf_mmd2_and_ratio(eval_test_real_PH, eval_test_sample_PH, biased=False, sigmas=sigma)
+        #mmd2, that_np = sess.run(mix_rbf_mmd2_and_ratio(eval_test_real, eval_test_sample,biased=False, sigmas=sigma))
+        mmd2, that_np = sess.run(mmd_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
        
         ## save parameters
         if mmd2 < best_mmd2_so_far and epoch > 10:
@@ -272,6 +283,7 @@ for epoch in range(num_epochs):
     
     if epoch % 50 == 0:
         model.dump_parameters(identifier + '_' + str(epoch), sess)
+    gc.collect()
 
 trace.flush()
 plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)

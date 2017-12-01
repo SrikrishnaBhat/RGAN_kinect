@@ -15,6 +15,12 @@ from differential_privacy.privacy_accountant.tf import accountant
 
 # --- to do with latent space --- #
 
+noise_file = 'Z_mb.csv'
+input_file = 'X_mb.csv'
+
+columns = [str(i) for i in range(1, 15)]
+columns_noise = [str(i) for i in range(1, 4)]
+
 def sample_Z(batch_size, seq_length, latent_dim, use_time=False, use_noisy_time=False):
     sample = np.float32(np.random.normal(size=[batch_size, seq_length, latent_dim]))
     if use_time:
@@ -54,6 +60,35 @@ def sample_C(batch_size, cond_dim=0, max_val=1, one_hot=False):
         return C
 
 # --- to do with training --- #
+def store_to_file(X, Z):
+    import os
+    import pandas as pd
+    X_dims = X.shape
+    Z_dims = Z.shape
+    X_val = X[0, :, :]
+    Z_val = Z[0, :, :]
+    for i in range(1, X_dims[0]):
+        X_val = np.append(X_val, np.zeros((1, X_dims[2])),axis=0)
+        X_val = np.append(X_val, X[i, :, :], axis=0)
+    for i in range(1, Z_dims[0]):
+        Z_val = np.append(Z_val, np.zeros((1, Z_dims[2])),axis=0)
+        Z_val = np.append(Z_val, Z[i, :, :], axis=0)
+    X_df = pd.DataFrame(X_val, columns=columns)
+    Z_df = pd.DataFrame(Z_val, columns=columns_noise)
+    if not os.path.exists(input_file):
+        X_df.to_csv(input_file, index=None)
+    else:
+        output_X = pd.DataFrame(np.zeros((1, X_val.shape[1])), columns=columns)
+        output_X = pd.read_csv(input_file).append(output_X, ignore_index=True)
+        output_X = output_X.append(X_df, ignore_index=True)
+        output_X.to_csv(input_file, index=None)
+    if not os.path.exists(noise_file):
+        Z_df.to_csv(noise_file, index=None)
+    else:
+        output_Z = pd.DataFrame(np.zeros((1, Z_val.shape[1])), columns=columns_noise)
+        output_Z = pd.read_csv(noise_file).append(output_Z, ignore_index=True)
+        output_Z = output_Z.append(Z_df, ignore_index=True)
+        output_Z.to_csv(noise_file, index=None)
 
 def train_epoch(epoch, samples, labels, sess, Z, X, CG, CD, CS, D_loss, G_loss, D_solver, G_solver, 
                 batch_size, use_time, D_rounds, G_rounds, seq_length, 
@@ -66,6 +101,7 @@ def train_epoch(epoch, samples, labels, sess, Z, X, CG, CD, CS, D_loss, G_loss, 
         for d in range(D_rounds):
             X_mb, Y_mb = data_utils.get_batch(samples, batch_size, batch_idx + d, labels)
             Z_mb = sample_Z(batch_size, seq_length, latent_dim, use_time)
+            #store_to_file(X_mb, Z_mb)
             if cond_dim > 0:
                 # CGAN
                 Y_mb = Y_mb.reshape(-1, cond_dim)

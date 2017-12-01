@@ -304,7 +304,11 @@ def kinect():
         image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
         image_values = image_df.drop('XQPCTick', axis=1).values
         train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
-    labels = np.ones((len(image_list), 1)) * 3
+    samples = train
+    rand_list = [random.random() for i in range(20)]
+    for i in range(1, 20):
+        samples = np.append(samples, train + rand_list[i], axis=0)
+    labels = np.ones((samples.shape[0], 1)) * 3
     return train, labels
 
 def mnist(randomize=False):
