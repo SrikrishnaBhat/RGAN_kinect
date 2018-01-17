@@ -82,6 +82,7 @@ eval_real_PH = tf.placeholder(tf.float32, [eval_eval_size, seq_length, num_gener
 eval_sample_PH = tf.placeholder(tf.float32, [eval_eval_size, seq_length, num_generated_features])
 n_sigmas = 2
 sigma = tf.get_variable(name='sigma', shape=n_sigmas, initializer=tf.constant_initializer(value=np.power(heuristic_sigma_training, np.linspace(-1, 3, num=n_sigmas))))
+print((eval_real_PH.shape, eval_sample_PH.shape))
 mmd2, that = mix_rbf_mmd2_and_ratio(eval_real_PH, eval_sample_PH, sigma)
 with tf.variable_scope("SIGMA_optimizer"):
     sigma_solver = tf.train.RMSPropOptimizer(learning_rate=0.05).minimize(-that, var_list=[sigma])
@@ -224,7 +225,6 @@ for epoch in range(num_epochs):
             old_that = that_np
             sigma_iter += 1
         #opt_sigma = sess.run(sigma)
-        print((eval_test_real.shape, eval_test_sample.shape))
         if epoch == 0:
             eval_test_real_PH = tf.placeholder(tf.float32, eval_test_real.shape)
             eval_test_sample_PH = tf.placeholder(tf.float32, eval_test_sample.shape)
@@ -288,18 +288,3 @@ for epoch in range(num_epochs):
 trace.flush()
 plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)
 model.dump_parameters(identifier + '_' + str(epoch), sess)
-
-## after-the-fact evaluation
-#n_test = vali.shape[0]      # using validation set for now TODO
-#n_batches_for_test = floor(n_test/batch_size)
-#n_test_eval = n_batches_for_test*batch_size
-#test_sample = np.empty(shape=(n_test_eval, seq_length, num_signals))
-#test_Z = model.sample_Z(n_test_eval, seq_length, latent_dim, use_time)
-#for i in range(n_batches_for_test):
-#    test_sample[i*batch_size:(i+1)*batch_size, :, :] = sess.run(G_sample, feed_dict={Z: test_Z[i*batch_size:(i+1)*batch_size]})
-#test_sample = np.float32(test_sample)
-#test_real = np.float32(vali[np.random.choice(n_test, n_test_eval, replace=False), :, :])
-## we can only get samples in the size of the batch...
-#heuristic_sigma = median_pairwise_distance(test_real, test_sample)
-#test_mmd2, that = sess.run(mix_rbf_mmd2_and_ratio(test_real, test_sample, sigmas=heuristic_sigma, biased=False))
-##print(test_mmd2, that)

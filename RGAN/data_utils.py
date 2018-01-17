@@ -136,6 +136,32 @@ def get_data(data_type, data_options=None):
         samples, labels = resampled_eICU(**data_options)
     elif data_type == 'kinect':
         samples, labels = kinect()
+    elif data_type == 'dance':
+        samples, labels = dance()
+    elif data_type == 'hands':
+        samples, labels = hands()
+    elif data_type == 'legs':
+        samples, labels = legs()
+    elif data_type == 'centre':
+        samples, labels = centre()
+    elif data_type == 'left_leg':
+        samples, labels = left_leg()
+    elif data_type == 'right_leg':
+        samples, labels = right_leg()
+    elif data_type == 'left_hand':
+        samples, labels = left_hand()
+    elif data_type == 'right_hand':
+        samples, labels = right_hand()
+    elif data_type == 'centre_dance':
+        samples, labels = centre_dance()
+    elif data_type == 'left_leg_dance':
+        samples, labels = left_leg_dance()
+    elif data_type == 'right_leg_dance':
+        samples, labels = right_leg_dance()
+    elif data_type == 'left_hand_dance':
+        samples, labels = left_hand_dance()
+    elif data_type == 'right_hand_dance':
+        samples, labels = right_hand_dance()
     else:
         raise ValueError(data_type)
     print('Generated/loaded', len(samples), 'samples from data-type', data_type)
@@ -293,23 +319,649 @@ def eICU_task(predict_label=False):
         samples[k] = X.reshape(-1, 16, 4)
     return samples, labels
 
+def left_hand_dance():
+    import os
+    import json
+    json_path='axis_dance.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['left_hand_dance']
+    print(axis_list)
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 100, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=100:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    print(train.shape)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_left_hand_dance_max.npy', max_list)
+    np.save('./experiments/data/cristobal_left_hand_dance_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def right_hand_dance():
+    import os
+    import json
+    json_path='axis_dance.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['right_hand_dance']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 100, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=100:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_right_hand_max.npy', max_list)
+    np.save('./experiments/data/cristobal_right_hand_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def left_leg_dance():
+    import os
+    import json
+    json_path='axis_dance.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['left_leg_dance']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 100, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=100:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_left_leg_dance_max.npy', max_list)
+    np.save('./experiments/data/cristobal_left_leg_dance_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def right_leg_dance():
+    import os
+    import json
+    json_path='axis_dance.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['right_leg_dance']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 100, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=100:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_right_leg_dance_max.npy', max_list)
+    np.save('./experiments/data/cristobal_right_leg_dance_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def centre_dance():
+    import os
+    import json
+    json_path='axis_dance.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['centre_dance']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 100, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=100:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_centre_dance_max.npy', max_list)
+    np.save('./experiments/data/cristobal_centre_dance_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def left_hand():
+    import os
+    import json
+    json_path='axis.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['left_hand']
+    print(axis_list)
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 20, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=20:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    print(train.shape)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_left_hand_max.npy', max_list)
+    np.save('./experiments/data/cristobal_left_hand_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def right_hand():
+    import os
+    import json
+    json_path='axis.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['right_hand']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 20, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=20:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_right_hand_max.npy', max_list)
+    np.save('./experiments/data/cristobal_right_hand_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def left_leg():
+    import os
+    import json
+    json_path='axis.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['left_leg']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 20, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=20:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_left_leg_max.npy', max_list)
+    np.save('./experiments/data/cristobal_left_leg_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def right_leg():
+    import os
+    import json
+    json_path='axis.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['right_leg']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 20, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=20:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_right_leg_max.npy', max_list)
+    np.save('./experiments/data/cristobal_right_leg_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def hands():
+    import os
+    import json
+    json_path='axis.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['hands']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 20, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=20:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_hands_max.npy', max_list)
+    np.save('./experiments/data/cristobal_hands_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def legs():
+    import os
+    import json
+    json_path='axis.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['legs']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 20, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=20:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_legs_max.npy', max_list)
+    np.save('./experiments/data/cristobal_legs_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def centre():
+    import os
+    import json
+    json_path='axis.json'
+    with open(json_path, 'r') as f:
+        axis_list = json.load(f)['centre']
+    axis_coords = []
+    for coord in axis_list:
+        coord = int(coord)
+        axis_coords += [coord * 3 + i for i in range(3)]
+        
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 20, len(axis_coords)])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.drop('XQPCTick', axis=1).values[:, axis_coords]
+        im_shape = image_values.shape
+        if im_shape[0]!=20:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_centre_max.npy', max_list)
+    np.save('./experiments/data/cristobal_centre_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
+def dance():
+    import os
+    # Get the gesture sequence list
+    base_path = './data/G_sequences'
+    image_list = os.listdir(base_path)
+    train = np.ones([0, 100, 75])
+    max_list = []
+    min_list = []
+    for i in range(len(image_list)):
+        # Read file and append to overall list of gesture_sequences
+        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+        image_values = image_df.values
+        im_shape = image_values.shape
+        if im_shape[0]!=100:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 100, -1), axis=0)
+    samples = train
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_dance_max.npy', max_list)
+    np.save('./experiments/data/cristobal_dance_min.npy', min_list)
+    labels = np.ones((samples.shape[0], 1)) * 3
+    return samples, labels
+
 def kinect():
     import os
     # Get the gesture sequence list
-    base_path = './data/G3_time'
+    base_path = './data/G_sequences'
     image_list = os.listdir(base_path)
     train = np.ones([0, 20, 60])
+    max_list = []
+    min_list = []
     for i in range(len(image_list)):
         # Read file and append to overall list of gesture_sequences
         image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
         image_values = image_df.drop('XQPCTick', axis=1).values
-        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+        im_shape = image_values.shape
+        if im_shape[0]!=19:
+            continue
+        #if im_shape[0]<20:
+        #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
+        #elif im_shape[0]>20:
+        #    image_values = image_values[:20, :]
+        train = np.append(train, image_values.reshape(1, 19, -1), axis=0)
     samples = train
-    rand_list = [random.random() for i in range(20)]
-    for i in range(1, 20):
-        samples = np.append(samples, train + rand_list[i], axis=0)
+    #rand_list = [random.random() for i in range(19)]
+    #for i in range(1, 19):
+    #    samples = np.append(samples, train + rand_list[i], axis=0)
+    shape = samples.shape
+    print(shape)
+    for i in range(shape[-1]):
+        max_list.append(samples[:, :, i].max())
+        min_list.append(samples[:, :, i].min())
+        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        samples[:, :, i] = samples[:, :, i] * 2 - 1
+    max_list = np.asarray(max_list)
+    min_list = np.asarray(min_list)
+    np.save('./experiments/data/cristobal_kinect_max.npy', max_list)
+    np.save('./experiments/data/cristobal_kinect_min.npy', min_list)
     labels = np.ones((samples.shape[0], 1)) * 3
-    return train, labels
+    return samples, labels
 
 def mnist(randomize=False):
     """ Load and serialise """
@@ -877,6 +1529,78 @@ def get_eICU_with_targets(use_age=False, use_gender=False, save=False):
 
     return train_seqs, vali_seqs, test_seqs, train_targets, vali_targets, test_targets, train_targets_oh, vali_targets_oh, test_targets_oh
 
+def generate_synthetic_for_set(identifier_list, epoch, n_train, predict_labels=False):
+    """
+    - Load a CGAN pretrained model
+    - Load its corresponding test data (+ labels)
+    - Generate num_examples synthetic training data (+labels)
+    - Save to format easy for training classifier on (see Eval)
+    """
+    settings_list = []
+    max_list = []
+    min_list = []
+    for identifier in identifier_list:
+        settings_list.append(json.load(open('./experiments/settings/' + identifier + '.txt', 'r')))
+        #if not settings['cond_dim'] > 0: 
+        #    assert settings['predict_labels']
+        #    assert predict_labels
+        # get the test data
+        #print('Loading test (real) data for', identifier)
+        data_dict = np.load('./experiments/data/' + identifier + '.data.npy').item()
+        test_data = data_dict['samples']['test']
+        test_labels = data_dict['labels']['test']
+        train_data = data_dict['samples']['train']
+        train_labels = data_dict['labels']['train']
+        print('Loaded', test_data.shape[0], 'test examples')
+        print('Sampling', n_train, 'train examples from the model')
+        #if 'kinect' in identifier:
+        #    max_list.append(np.load('./experiments/data/cristobal_hands_max.npy'))
+        #    min_list.append(np.load('./experiments/data/cristobal_hands_min.npy'))
+        #else:
+        max_list.append(np.load('./experiments/data/' + identifier + '_max.npy'))
+        min_list.append(np.load('./experiments/data/' + identifier + '_min.npy'))
+    index = 0
+    synth_data_list = model.sample_combined_trained_model(settings_list, epoch, n_train, Z_samples=None)
+    synth_array_list = []
+    for synth_data in synth_data_list:
+        pose_seq_columns = []
+        n_dims = int(len(max_list[index])/3)
+        for i in range(n_dims):
+            for j in range(3):
+                col_name = 'j' + str(i) + 'x' + str(j)
+                pose_seq_columns.append(col_name)
+        dims = synth_data.shape
+        print(dims)
+        #synth_data = synth_data.reshape((dims[0], dims[1]))
+
+        for i in range(dims[0]):
+            data_point = synth_data[i, :, :]
+            print(i, len(synth_array_list))
+            for j in range(dims[-1]):
+                stdized_data = (synth_data[i, :, j] + 1)/2
+                synth_data[i, :, j] = (stdized_data * (max_list[index][j] - min_list[index][j])) + min_list[index][j]
+                #synth_df = pd.DataFrame(synth_data[i, :, :], columns=pose_seq_columns)
+            if i>= len(synth_array_list):
+                synth_array_list.append(synth_data[i, :, :])
+            else:
+                synth_array_list[i] = np.append(synth_array_list[i], synth_data[i, :, :], axis=1)
+            #if i==0:
+            #    synth_arr = synth_data[i, :, :]
+            #else:
+            #    synth_arr= np.append(synth_arr, synth_data[i, :, :], axis=0)
+
+    for synth_arr in synth_array_list:
+        print(synth_arr.shape)
+        if synth_arr.shape[1] != 60:
+            continue
+        fin_cols = []
+        for i in range(20):
+            for j in range(3):
+                col_name = 'j' + str(i) + 'x' + str(j)
+                fin_cols.append(col_name)
+        synth_df = pd.DataFrame(synth_arr, columns=fin_cols)
+        synth_df.to_csv('./experiments/data/kinect_sequence/synthetic_data_' + str(index) + '.csv', index=None)
+        index += 1
 
 ### --- TSTR ---- ####
 def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
@@ -899,6 +1623,8 @@ def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
     train_labels = data_dict['labels']['train']
     print('Loaded', test_data.shape[0], 'test examples')
     print('Sampling', n_train, 'train examples from the model')
+    max_list = np.load('./experiments/data/cristobal_centre_max.npy')
+    min_list = np.load('./experiments/data/cristobal_centre_min.npy')
     if not predict_labels:
         assert test_data.shape[0] == test_labels.shape[0]
         if 'eICU' in settings['data']:
@@ -909,13 +1635,20 @@ def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
             synth_data = model.sample_trained_model(settings, epoch, n_train, Z_samples=None)
             print(synth_data.shape)
             pose_seq_columns = []
-            for i in range(20):
+            n_dims = int(len(max_list[index])/3)
+            for i in range(n_dims):
                 for j in range(3):
                     col_name = 'j' + str(i) + 'x' + str(j)
                     pose_seq_columns.append(col_name)
             dims = synth_data.shape
-            synth_data = synth_data.reshape((dims[0], dims[1]))
+            #synth_data = synth_data.reshape((dims[0], dims[1]))
 
-            synth_df = pd.DataFrame(synth_data, columns=pose_seq_columns)
-            synth_df.to_csv('./experiments/data/synthetic_data.csv', index=None)
+            for i in range(dims[0]):
+                print(i)
+                data_point = synth_data[i, :, :]
+                for j in range(dims[-1]):
+                    stdized_data = (synth_data[i, :, j] + 1)/2
+                    synth_data[i, :, j] = (stdized_data * (max_list[j] - min_list[j])) + min_list[j]
+                    synth_df = pd.DataFrame(synth_data[i, :, :], columns=pose_seq_columns)
+                synth_df.to_csv('./experiments/data/kinect_sequence/synthetic_data_' + str(i) + '.csv', index=None)
     return True
