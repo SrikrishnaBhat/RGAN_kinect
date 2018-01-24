@@ -892,7 +892,7 @@ def dance():
     # Get the gesture sequence list
     base_path = './data/G_sequences'
     image_list = os.listdir(base_path)
-    train = np.ones([0, 100, 75])
+    train = np.ones([0, 20, 75])
     max_list = []
     min_list = []
     for i in range(len(image_list)):
@@ -900,7 +900,7 @@ def dance():
         image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
         image_values = image_df.values
         im_shape = image_values.shape
-        if im_shape[0]!=100:
+        if im_shape[0]!=20:
             continue
         #if im_shape[0]<20:
         #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
@@ -938,13 +938,13 @@ def kinect():
         image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
         image_values = image_df.drop('XQPCTick', axis=1).values
         im_shape = image_values.shape
-        if im_shape[0]!=19:
+        if im_shape[0]!=20:
             continue
         #if im_shape[0]<20:
         #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
         #elif im_shape[0]>20:
         #    image_values = image_values[:20, :]
-        train = np.append(train, image_values.reshape(1, 19, -1), axis=0)
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
     samples = train
     #rand_list = [random.random() for i in range(19)]
     #for i in range(1, 19):
