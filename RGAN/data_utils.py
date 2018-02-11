@@ -906,18 +906,27 @@ def dance():
         #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
         #elif im_shape[0]>20:
         #    image_values = image_values[:20, :]
-        train = np.append(train, image_values.reshape(1, 100, -1), axis=0)
+        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
     samples = train
     #rand_list = [random.random() for i in range(19)]
     #for i in range(1, 19):
     #    samples = np.append(samples, train + rand_list[i], axis=0)
     shape = samples.shape
     print(shape)
+    stddev_list = []
     for i in range(shape[-1]):
         max_list.append(samples[:, :, i].max())
         min_list.append(samples[:, :, i].min())
         samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
         samples[:, :, i] = samples[:, :, i] * 2 - 1
+        stddev_list.append(np.std(samples[:, :, i]))
+    from random import uniform
+    temp_samples = samples.copy()
+    for i in range(19):
+        temp_val = temp_samples
+        for j in range(len(stddev_list)):
+            temp_val[:, :, j] += uniform(-stddev_list[i], stddev_list[i])
+        samples = np.append(samples, temp_val, axis=0)
     max_list = np.asarray(max_list)
     min_list = np.asarray(min_list)
     np.save('./experiments/data/cristobal_dance_max.npy', max_list)
@@ -1623,8 +1632,8 @@ def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
     train_labels = data_dict['labels']['train']
     print('Loaded', test_data.shape[0], 'test examples')
     print('Sampling', n_train, 'train examples from the model')
-    max_list = np.load('./experiments/data/cristobal_centre_max.npy')
-    min_list = np.load('./experiments/data/cristobal_centre_min.npy')
+    max_list = np.load('./experiments/data/' + identifier + '_max.npy')
+    min_list = np.load('./experiments/data/' + identifier + '_min.npy')
     if not predict_labels:
         assert test_data.shape[0] == test_labels.shape[0]
         if 'eICU' in settings['data']:
@@ -1635,7 +1644,7 @@ def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
             synth_data = model.sample_trained_model(settings, epoch, n_train, Z_samples=None)
             print(synth_data.shape)
             pose_seq_columns = []
-            n_dims = int(len(max_list[index])/3)
+            n_dims = int(len(max_list)/3)
             for i in range(n_dims):
                 for j in range(3):
                     col_name = 'j' + str(i) + 'x' + str(j)

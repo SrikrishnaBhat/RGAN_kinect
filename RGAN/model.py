@@ -318,14 +318,24 @@ def generator(z, hidden_units_g, seq_length, batch_size, num_generated_features,
     return output_3d
 
 def discriminator(x, hidden_units_d, seq_length, batch_size, reuse=False, 
-        cond_dim=0, c=None, batch_mean=False):
+        cond_dim=0, c=None, batch_mean=False, parameters=None):
     with tf.variable_scope("discriminator") as scope:
         if reuse:
             scope.reuse_variables()
-        W_out_D = tf.get_variable(name='W_out_D', shape=[hidden_units_d, 1],
-                initializer=tf.truncated_normal_initializer())
-        b_out_D = tf.get_variable(name='b_out_D', shape=1,
-                initializer=tf.truncated_normal_initializer())
+        if parameters is None:
+            W_out_D = tf.get_variable(name='W_out_D', shape=[hidden_units_d, 1],
+                    initializer=tf.truncated_normal_initializer())
+            b_out_D = tf.get_variable(name='b_out_D', shape=1,
+                    initializer=tf.truncated_normal_initializer())
+        else:
+            W_out_D = tf.get_variable(name='W_out_D', shape=[hidden_units_d, 1],
+                                      initializer=tf.constant_initializer(
+                                          value=parameters['discrimminator/W_out_D:0']
+                                      ))
+            b_out_D = tf.get_variable(name='b_out_D', shape=1,
+                                      initializer=tf.constant_initializer(
+                                          value=parameters['discrimminator/b_out_D:0']
+                                      ))
 #        W_final_D = tf.get_variable(name='W_final_D', shape=[hidden_units_d, 1],
 #                initializer=tf.truncated_normal_initializer())
 #        b_final_D = tf.get_variable(name='b_final_D', shape=1,

@@ -36,6 +36,7 @@ for (k, v) in settings.items(): print(v, '\t',  k)
 # WARNING: at this point a lot of variables appear
 locals().update(settings)
 json.dump(settings, open('./experiments/settings/' + identifier + '.txt', 'w'), indent=0)
+epoch = 150
 
 if not data == 'load':
     data_path = './experiments/data/' + identifier + '.data.npy'
