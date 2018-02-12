@@ -917,16 +917,16 @@ def dance():
     for i in range(shape[-1]):
         max_list.append(samples[:, :, i].max())
         min_list.append(samples[:, :, i].min())
-        samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
-        samples[:, :, i] = samples[:, :, i] * 2 - 1
-        stddev_list.append(np.std(samples[:, :, i]))
-    from random import uniform
-    temp_samples = samples.copy()
-    for i in range(19):
-        temp_val = temp_samples
-        for j in range(len(stddev_list)):
-            temp_val[:, :, j] += uniform(-stddev_list[i], stddev_list[i])
-        samples = np.append(samples, temp_val, axis=0)
+        #samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+        #samples[:, :, i] = samples[:, :, i] * 2 - 1
+        #stddev_list.append(np.std(samples[:, :, i]))
+    #from random import uniform
+    #temp_samples = samples.copy()
+    #for i in range(19):
+    #    temp_val = temp_samples
+    #    for j in range(len(stddev_list)):
+    #        temp_val[:, :, j] += uniform(-stddev_list[i], stddev_list[i])
+    #    samples = np.append(samples, temp_val, axis=0)
     max_list = np.asarray(max_list)
     min_list = np.asarray(min_list)
     np.save('./experiments/data/cristobal_dance_max.npy', max_list)
