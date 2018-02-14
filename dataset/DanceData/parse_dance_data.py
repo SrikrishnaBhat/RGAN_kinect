@@ -55,4 +55,4 @@ for file_name in file_list:
     print(file_name)
     dance_df = pd.read_csv(os.path.join(home_dir, file_name))
     parsed_df = pd.DataFrame(parse_dance_data(dance_df))
-    parsed_df.to_csv(os.path.join(result_dir, file_name.split('.')[0] + '_parsed.csv'))
+    parsed_df.to_csv(os.path.join(result_dir, file_name.split('.')[0] + '_parsed.csv'), index=None)

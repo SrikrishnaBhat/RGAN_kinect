@@ -20,7 +20,7 @@ def revert_dance_data(input_df):
             x = input_arr[i, pos*3 + 0]
             y = input_arr[i, pos*3 + 1]
             z = input_arr[i, pos*3 + 2]
-            temp_arr = [time, joint, dancer, x, y, z]
+            temp_arr = [time, dancer, joint, x, y, z]
             final_array[index, :] = np.array(temp_arr)
             index += 1
         time += 1
@@ -40,5 +40,5 @@ for file_name in file_list:
     print(file_name)
     dance_df = pd.read_csv(os.path.join(home_dir, file_name))
     parsed_df = pd.DataFrame(revert_dance_data(dance_df), columns=column_list)
-    parsed_df.to_csv(os.path.join(result_dir, file_name.split('.')[0] + '_reverted.csv'))
+    parsed_df.to_csv(os.path.join(result_dir, file_name.split('.')[0] + '_reverted.csv'), index=None)
 
