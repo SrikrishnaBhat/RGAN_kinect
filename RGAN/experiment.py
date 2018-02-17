@@ -14,6 +14,8 @@ import eval
 from time import time
 from math import floor
 from mmd import rbf_mmd2, median_pairwise_distance, mix_rbf_mmd2_and_ratio
+import mmd
+import pandas as pd
 
 import gc
 
@@ -172,7 +174,8 @@ t0 = time()
 best_epoch = 0
 print('epoch\ttime\tD_loss\tG_loss\tmmd2\tthat\tpdf_sample\tpdf_real')
 mmd_calc = None
-for epoch in range(num_epochs):
+kernel_calc = None
+for epoch in range(10):#num_epochs):
     D_loss_curr, G_loss_curr = model.train_epoch(epoch, samples['train'], labels['train'],
                                         sess, Z, X, CG, CD, CS,
                                         D_loss, G_loss,
@@ -229,9 +232,18 @@ for epoch in range(num_epochs):
         if epoch == 0:
             eval_test_real_PH = tf.placeholder(tf.float32, eval_test_real.shape)
             eval_test_sample_PH = tf.placeholder(tf.float32, eval_test_sample.shape)
+            kernel_calc = mmd._mix_rbf_kernel(eval_test_real_PH, eval_test_sample_PH, sigma, None)
             mmd_calc = mix_rbf_mmd2_and_ratio(eval_test_real_PH, eval_test_sample_PH, biased=False, sigmas=sigma)
         #mmd2, that_np = sess.run(mix_rbf_mmd2_and_ratio(eval_test_real, eval_test_sample,biased=False, sigmas=sigma))
         mmd2, that_np = sess.run(mmd_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
+        XX, XY, YY, d = sess.run(kernel_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
+        XX_df = pd.DataFrame(XX)
+        XX_df.to_csv('experiments/data/XX_{}.csv'.format(epoch))
+        XY_df = pd.DataFrame(XY)
+        XY_df.to_csv('experiments/data/XY_{}.csv'.format(epoch))
+        YY_df = pd.DataFrame(YY)
+        YY_df.to_csv('experiments/data/YY_{}.csv'.format(epoch))
+        print('d_value: {}'.format(d))
        
         ## save parameters
         if mmd2 < best_mmd2_so_far and epoch > 10:

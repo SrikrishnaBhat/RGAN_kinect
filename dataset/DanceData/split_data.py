@@ -23,7 +23,7 @@ for i in range(25):
 for file_name in file_list:
     print(file_name)
     input_df = pandas.read_csv(os.path.join(home_dir, file_name))
-    input_array = input_df.values[:, 1:]
+    input_array = input_df.values
     ## Get as many rows as ROWS value
     for i in range(0, input_array.shape[0], ROWS):
         diff = min(ROWS, input_array.shape[0]-i)
