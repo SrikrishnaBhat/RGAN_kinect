@@ -44,7 +44,7 @@ def _mix_rbf_kernel(X, Y, sigmas, wts=None):
     r = lambda x: tf.expand_dims(x, 0)
     c = lambda x: tf.expand_dims(x, 1)
 
-    K_XX, K_XY, K_YY = 0, 0, 0
+    K_XX, K_XY, K_YY = 0, 0,  0
     for sigma, wt in zip(tf.unstack(sigmas, axis=0), wts):
         gamma = 1 / (2 * sigma**2)
         K_XX += wt * tf.exp(-gamma * (-2 * XX + c(X_sqnorms) + r(X_sqnorms)))
