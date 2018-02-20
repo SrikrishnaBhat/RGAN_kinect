@@ -175,7 +175,7 @@ best_epoch = 0
 print('epoch\ttime\tD_loss\tG_loss\tmmd2\tthat\tpdf_sample\tpdf_real')
 mmd_calc = None
 kernel_calc = None
-for epoch in range(10):#num_epochs):
+for epoch in range(num_epochs):
     D_loss_curr, G_loss_curr = model.train_epoch(epoch, samples['train'], labels['train'],
                                         sess, Z, X, CG, CD, CS,
                                         D_loss, G_loss,
@@ -236,14 +236,17 @@ for epoch in range(10):#num_epochs):
             mmd_calc = mix_rbf_mmd2_and_ratio(eval_test_real_PH, eval_test_sample_PH, biased=False, sigmas=sigma)
         #mmd2, that_np = sess.run(mix_rbf_mmd2_and_ratio(eval_test_real, eval_test_sample,biased=False, sigmas=sigma))
         mmd2, that_np = sess.run(mmd_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
-        XX, XY, YY, d = sess.run(kernel_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
-        XX_df = pd.DataFrame(XX)
-        XX_df.to_csv('experiments/data/XX_{}.csv'.format(epoch))
-        XY_df = pd.DataFrame(XY)
-        XY_df.to_csv('experiments/data/XY_{}.csv'.format(epoch))
-        YY_df = pd.DataFrame(YY)
-        YY_df.to_csv('experiments/data/YY_{}.csv'.format(epoch))
-        print('d_value: {}'.format(d))
+        if not ((len(eval_test_real < 1)> 0) and (len(eval_test_real > -1)>0)):
+            print(eval_real)
+            np.save('experiments/data/eval_test_real_{}.csv'.format(epoch), eval_test_real)
+            np.save('experiments/data/eval_test_sample_{}.csv'.format(epoch), eval_test_sample)
+            XX, XY, YY, d = sess.run(kernel_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
+            XX_df = pd.DataFrame(XX)
+            XX_df.to_csv('experiments/data/XX_{}.csv'.format(epoch))
+            XY_df = pd.DataFrame(XY)
+            XY_df.to_csv('experiments/data/XY_{}.csv'.format(epoch))
+            YY_df = pd.DataFrame(YY)
+            YY_df.to_csv('experiments/data/YY_{}.csv'.format(epoch))
        
         ## save parameters
         if mmd2 < best_mmd2_so_far and epoch > 10:

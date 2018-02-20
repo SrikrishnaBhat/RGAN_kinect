@@ -11,6 +11,15 @@ if not os.path.exists(result_dir):
 file_list = os.listdir(home_dir)
 ROWS = 20 #Number of rows or timesteps
 
+X_orig = np.array([500, 600, 300])
+
+def centre_points(arr):
+    shape = arr.shape
+    for i in range(shape[0]):
+        for j in range(0, shape[1], 3):
+            arr[i, j:j+3] = arr[i, j:j+3] - X_orig
+    return arr
+
 index = 0
 
 column_list = []
@@ -29,8 +38,10 @@ for file_name in file_list:
         diff = min(ROWS, input_array.shape[0]-i)
 
         ## Pad zeroes to the array if number of rows is less than ROWS
+        start = i if i==0 else i-1
         temp_array = np.zeros((ROWS, input_array.shape[1]))
-        temp_array[:diff, :] = input_array[i:i+diff, :]
+        temp_array[:diff, :] = input_array[start:start+diff, :]
+        temp_array = centre_points(temp_array)
         output_df = pandas.DataFrame(temp_array, columns=column_list)
         name = file_name.split('.')[0] + str(i) + '.csv'
         output_df.to_csv(os.path.join(result_dir, name), index=None)
