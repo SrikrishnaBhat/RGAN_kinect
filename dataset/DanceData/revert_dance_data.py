@@ -26,8 +26,8 @@ def revert_dance_data(input_df):
         time += 1
     return final_array
 
-home_dir = 'parsed'
-result_dir = 'parse_reverted'
+home_dir = 'dance_gen'
+result_dir = home_dir + '_reverted'
 file_list = os.listdir(home_dir)
 
 column_list = ['time', 'dancer', 'joint', 'x', 'y', 'z']

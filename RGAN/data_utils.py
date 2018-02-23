@@ -887,6 +887,19 @@ def centre():
     labels = np.ones((samples.shape[0], 1)) * 3
     return samples, labels
 
+def min_max_normaliser(identifier, samples):
+    max_list = []
+    min_list = []
+    shape = samples.shape
+    for i in range(shape[-1]):
+         max_list.append(samples[:, :, i].max())
+         min_list.append(samples[:, :, i].min())
+         samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
+         samples[:, :, i] = samples[:, :, i] * 2 - 1
+    np.save('./experiments/data/{}_max.npy'.format(identifier), max_list)
+    np.save('./experiments/data/{}_min.npy'.format(identifier), min_list)
+    return samples
+
 def dance():
     import os
     # Get the gesture sequence list
@@ -895,6 +908,7 @@ def dance():
     train = np.ones([0, 20, 75])
     max_list = []
     min_list = []
+    identifier = 'cristobal_dance'
     for i in range(len(image_list)):
         # Read file and append to overall list of gesture_sequences
         image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
@@ -913,24 +927,7 @@ def dance():
     #    samples = np.append(samples, train + rand_list[i], axis=0)
     shape = samples.shape
     print(shape)
-    stddev_list = []
-    for i in range(shape[-1]):
-        max_list.append(samples[:, :, i].max())
-        min_list.append(samples[:, :, i].min())
-        #samples[:, :, i] = (samples[:, :, i] - min_list[i])/(max_list[i]-min_list[i])
-        #samples[:, :, i] = samples[:, :, i] * 2 - 1
-        #stddev_list.append(np.std(samples[:, :, i]))
-    #from random import uniform
-    #temp_samples = samples.copy()
-    #for i in range(19):
-    #    temp_val = temp_samples
-    #    for j in range(len(stddev_list)):
-    #        temp_val[:, :, j] += uniform(-stddev_list[i], stddev_list[i])
-    #    samples = np.append(samples, temp_val, axis=0)
-    max_list = np.asarray(max_list)
-    min_list = np.asarray(min_list)
-    np.save('./experiments/data/cristobal_dance_max.npy', max_list)
-    np.save('./experiments/data/cristobal_dance_min.npy', min_list)
+    samples = min_max_normaliser(identifier, samples)
     labels = np.ones((samples.shape[0], 1)) * 3
     return samples, labels
 
@@ -1644,7 +1641,7 @@ def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
             synth_data = model.sample_trained_model(settings, epoch, n_train, Z_samples=None)
             print(synth_data.shape)
             pose_seq_columns = []
-            n_dims = int(len(max_list)/3)
+            n_dims = 25 #int(len(max_list)/3)
             for i in range(n_dims):
                 for j in range(3):
                     col_name = 'j' + str(i) + 'x' + str(j)
@@ -1658,6 +1655,6 @@ def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
                 for j in range(dims[-1]):
                     stdized_data = (synth_data[i, :, j] + 1)/2
                     synth_data[i, :, j] = (stdized_data * (max_list[j] - min_list[j])) + min_list[j]
-                    synth_df = pd.DataFrame(synth_data[i, :, :], columns=pose_seq_columns)
+                synth_df = pd.DataFrame(synth_data[i, :, :], columns=pose_seq_columns)
                 synth_df.to_csv('./experiments/data/kinect_sequence/synthetic_data_' + str(i) + '.csv', index=None)
     return True
