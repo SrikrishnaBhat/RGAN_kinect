@@ -157,11 +157,11 @@ else:
 
 # for dp
 target_eps = [0.125, 0.25, 0.5, 1, 2, 4, 8]
-dp_trace = open('./experiments/traces/' + identifier + '.dptrace.txt', 'w')
-dp_trace.write('epoch ' + ' eps' .join(map(str, target_eps)) + '\n')
+#dp_trace = open('./experiments/traces/' + identifier + '.dptrace.txt', 'w')
+#dp_trace.write('epoch ' + ' eps' .join(map(str, target_eps)) + '\n')
 
-trace = open('./experiments/traces/' + identifier + '.trace.txt', 'w')
-trace.write('epoch time D_loss G_loss mmd2 that pdf real_pdf\n')
+#trace = open('./experiments/traces/' + identifier + '.trace.txt', 'w')
+#trace.write('epoch time D_loss G_loss mmd2 that pdf real_pdf\n')
 
 # --- train --- #
 train_vars = ['batch_size', 'D_rounds', 'G_rounds', 'use_time', 'seq_length', 
@@ -184,14 +184,14 @@ for epoch in range(num_epochs):
     # -- eval -- #
 
     # visualise plots of generated samples, with/without labels
-    if epoch % vis_freq == 0:
-        if CGAN:
-            vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z, CG: vis_C})
-        else:
-            vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z})
-        plotting.visualise_at_epoch(vis_sample, data, 
-                predict_labels, one_hot, epoch, identifier, num_epochs,
-                resample_rate_in_min, multivariate_mnist, seq_length, labels=vis_C)
+    #if epoch % vis_freq == 0:
+    #    if CGAN:
+    #        vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z, CG: vis_C})
+    #    else:
+    #        vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z})
+    #    plotting.visualise_at_epoch(vis_sample, data, 
+    #            predict_labels, one_hot, epoch, identifier, num_epochs,
+    #            resample_rate_in_min, multivariate_mnist, seq_length, labels=vis_C)
    
     # compute mmd2 and, if available, prob density
     if epoch % eval_freq == 0:
@@ -269,14 +269,14 @@ for epoch in range(num_epochs):
         pdf_real = 'NA'
     
     ## get 'spent privacy'
-    if dp:
-        spent_eps_deltas = priv_accountant.get_privacy_spent(sess, target_eps=target_eps)
-        # get the moments
-        deltas = []
-        for (spent_eps, spent_delta) in spent_eps_deltas:
-            deltas.append(spent_delta)
-        dp_trace.write(str(epoch) + ' ' + ' '.join(map(str, deltas)) + '\n')
-        if epoch % 10 == 0: dp_trace.flush()
+    #if dp:
+    #    spent_eps_deltas = priv_accountant.get_privacy_spent(sess, target_eps=target_eps)
+    #    # get the moments
+    #    deltas = []
+    #    for (spent_eps, spent_delta) in spent_eps_deltas:
+    #        deltas.append(spent_delta)
+    #    dp_trace.write(str(epoch) + ' ' + ' '.join(map(str, deltas)) + '\n')
+    #    if epoch % 10 == 0: dp_trace.flush()
 
     ## print
     t = time() - t0
@@ -286,10 +286,10 @@ for epoch in range(num_epochs):
         print('%d\t%.2f\t%.4f\t%.4f\t%.5f\t%.0f\t %s\t %s' % (epoch, t, D_loss_curr, G_loss_curr, mmd2, that_np, pdf_sample, pdf_real))
 
     ## save trace
-    trace.write(' '.join(map(str, [epoch, t, D_loss_curr, G_loss_curr, mmd2, that_np, pdf_sample, pdf_real])) + '\n')
-    if epoch % 10 == 0: 
-        trace.flush()
-        plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)
+    #trace.write(' '.join(map(str, [epoch, t, D_loss_curr, G_loss_curr, mmd2, that_np, pdf_sample, pdf_real])) + '\n')
+    #if epoch % 10 == 0: 
+    #    trace.flush()
+    #    plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)
 
     if shuffle:     # shuffle the training data 
         perm = np.random.permutation(samples['train'].shape[0])
@@ -301,6 +301,6 @@ for epoch in range(num_epochs):
         model.dump_parameters(identifier + '_' + str(epoch), sess)
     gc.collect()
 
-trace.flush()
-plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)
+#trace.flush()
+#plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)
 model.dump_parameters(identifier + '_' + str(epoch), sess)

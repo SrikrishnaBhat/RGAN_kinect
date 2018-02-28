@@ -903,31 +903,32 @@ def min_max_normaliser(identifier, samples):
 def dance():
     import os
     # Get the gesture sequence list
-    base_path = './data/G_sequences'
-    image_list = os.listdir(base_path)
-    train = np.ones([0, 20, 75])
-    max_list = []
-    min_list = []
-    identifier = 'cristobal_dance'
-    for i in range(len(image_list)):
+    #base_path = './data/G_sequences'
+    #image_list = os.listdir(base_path)
+    #train = np.ones([0, 20, 75])
+    #max_list = []
+    #min_list = []
+    #identifier = 'cristobal_dance'
+    #for i in range(len(image_list)):
         # Read file and append to overall list of gesture_sequences
-        image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
-        image_values = image_df.values
-        im_shape = image_values.shape
-        if im_shape[0]!=20:
-            continue
+    #    image_df = pd.read_csv(os.path.join(base_path, image_list[i]))
+    #    image_values = image_df.values
+    #    im_shape = image_values.shape
+    #    if im_shape[0]!=20:
+    #        continue
         #if im_shape[0]<20:
         #    image_values = np.append(image_values, np.zeros((20-im_shape[0], im_shape[1])).astype('float32'), axis=0)
         #elif im_shape[0]>20:
         #    image_values = image_values[:20, :]
-        train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
-    samples = train
+    #    train = np.append(train, image_values.reshape(1, 20, -1), axis=0)
+    #samples = train
     #rand_list = [random.random() for i in range(19)]
     #for i in range(1, 19):
     #    samples = np.append(samples, train + rand_list[i], axis=0)
-    shape = samples.shape
-    print(shape)
-    samples = min_max_normaliser(identifier, samples)
+    #shape = samples.shape
+    #print(shape)
+    #samples = min_max_normaliser(identifier, samples)
+    samples = np.load('./data/dance_data_norm.npy')
     labels = np.ones((samples.shape[0], 1)) * 3
     return samples, labels
 
