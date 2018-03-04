@@ -12,11 +12,6 @@ file_list = os.listdir(home_dir)
 ROWS = 20 #Number of rows or timesteps
 STRIDE = 5
 
-SPLIT_RATIO = [0.6, 0.2, 0.2]
-
-input_dict = {}
-input
-
 def centre_points(arr):
     shape = arr.shape
     for i in range(shape[0]):
