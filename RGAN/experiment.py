@@ -84,6 +84,7 @@ eval_eval_size = int(0.2*eval_size)
 eval_real_PH = tf.placeholder(tf.float32, [eval_eval_size, seq_length, num_generated_features])
 eval_sample_PH = tf.placeholder(tf.float32, [eval_eval_size, seq_length, num_generated_features])
 n_sigmas = 2
+print(np.power(heuristic_sigma_training))
 sigma = tf.get_variable(name='sigma', shape=n_sigmas, initializer=tf.constant_initializer(value=np.power(heuristic_sigma_training, np.linspace(-1, 3, num=n_sigmas))))
 print((eval_real_PH.shape, eval_sample_PH.shape))
 mmd2, that = mix_rbf_mmd2_and_ratio(eval_real_PH, eval_sample_PH, sigma)

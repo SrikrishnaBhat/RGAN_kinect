@@ -114,9 +114,14 @@ def get_data(data_type, data_options=None):
     pdf = None
     if data_type == 'load':
         data_dict = np.load(data_options).item()
-        samples = data_dict['samples']
-        pdf = data_dict['pdf']
-        labels = data_dict['labels']
+        samples = data_dict
+        pdf = None
+        #pdf = data_dict['pdf']
+        labels = {
+		    'train': np.ones(samples['train'].shape[0]),
+		    'test': np.ones(samples['test'].shape[0]),
+		    'vali': np.ones(samples['vali'].shape[0])
+		}
     elif data_type == 'sine':
         samples = sine_wave(**data_options)
     elif data_type == 'mnist':

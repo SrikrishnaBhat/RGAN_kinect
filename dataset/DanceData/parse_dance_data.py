@@ -35,12 +35,12 @@ def right_part(input_array):
 def parse_dance_data(input_df):
     input_arr = input_df.values
     dims = input_arr.shape
-    final_array = np.zeros((dims[0]/25, 75))
+    final_array = np.zeros((int(dims[0]/25), 75))
     for i in range(0, dims[0], 25):
         temp_arr = input_arr[i:i+25, :]
-        final_array[i/25, :15] = centre(temp_arr)
-        final_array[i/25, 15:45] = left_part(temp_arr)
-        final_array[i/25, 45:75] = right_part(temp_arr)
+        final_array[int(i/25), :15] = centre(temp_arr)
+        final_array[int(i/25), 15:45] = left_part(temp_arr)
+        final_array[int(i/25), 45:75] = right_part(temp_arr)
     return final_array
 
 home_dir = 'Double Agent'

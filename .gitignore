@@ -1,2 +1,3 @@
-experiments/plots/*.png
-experiments/parameters/*.npy
+RGAN/experiments/plots/*.png
+RGAN/experiments/parameters/*.npy
+RGAN/__pycache__
