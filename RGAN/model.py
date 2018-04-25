@@ -1,10 +1,12 @@
 import tensorflow as tf
 import numpy as np
 #from data_utils import get_batch
+import time
+
 import data_utils
 import pdb
 import json
-from mod_core_rnn_cell_impl import LSTMCell          #modified to allow initializing bias in lstm
+from mod_core_rnn_cell_impl import LSTMCell, DropoutWrapper  # modified to allow initializing bias in lstm
 #from tensorflow.contrib.rnn import LSTMCell
 tf.logging.set_verbosity(tf.logging.ERROR)
 import mmd
@@ -20,6 +22,7 @@ input_file = 'X_mb.csv'
 
 columns = [str(i) for i in range(1, 15)]
 columns_noise = [str(i) for i in range(1, 4)]
+
 
 def sample_Z(batch_size, seq_length, latent_dim, use_time=False, use_noisy_time=False):
     sample = np.float32(np.random.normal(size=[batch_size, seq_length, latent_dim]))
@@ -130,6 +133,7 @@ def train_epoch(epoch, samples, labels, sess, Z, X, CG, CD, CS, D_loss, G_loss, 
             else:
                 _ = sess.run(G_solver,
                         feed_dict={Z: sample_Z(batch_size, seq_length, latent_dim, use_time=use_time)})
+            g_time[batch_idx, g] = time.time() - start_time
     # at the end, get the loss
     if cond_dim > 0:
         D_loss_curr, G_loss_curr = sess.run([D_loss, G_loss], feed_dict={X: X_mb, Z: sample_Z(batch_size, seq_length, latent_dim, use_time=use_time), CG: Y_mb, CD: Y_mb})
@@ -191,6 +195,8 @@ def WGAN_loss(Z, X, WGAN_clip=False):
 def GAN_loss(Z, X, generator_settings, discriminator_settings, kappa, cond, CG, CD, CS, wrong_labels=False):
     if cond:
         # C-GAN
+        out_prob = 0.7
+        cell_prob = 0.7
         G_sample = generator(Z, **generator_settings, c=CG)
         D_real, D_logit_real =  discriminator(X, **discriminator_settings, c=CD)
         D_fake, D_logit_fake = discriminator(G_sample, reuse=True, **discriminator_settings, c=CG)
@@ -305,11 +311,15 @@ def generator(z, hidden_units_g, seq_length, batch_size, num_generated_features,
                            initializer=lstm_initializer,
                            bias_start=bias_start,
                            reuse=reuse)
+        output_prob = 0.7
+        state_prob = 0.8
+        # dropout_cell = DropoutWrapper(cell, output_keep_prob=output_prob, state_keep_prob=state_prob)
         rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
             cell=cell,
             dtype=tf.float32,
             sequence_length=[seq_length]*batch_size,
             inputs=inputs)
+        print(rnn_outputs.shape)
         rnn_outputs_2d = tf.reshape(rnn_outputs, [-1, hidden_units_g])
         logits_2d = tf.matmul(rnn_outputs_2d, W_out_G) + b_out_G
 #        output_2d = tf.multiply(tf.nn.tanh(logits_2d), scale_out_G)
@@ -317,7 +327,7 @@ def generator(z, hidden_units_g, seq_length, batch_size, num_generated_features,
         output_3d = tf.reshape(output_2d, [-1, seq_length, num_generated_features])
     return output_3d
 
-def discriminator(x, hidden_units_d, seq_length, batch_size, reuse=False, 
+def discriminator(x, hidden_units_d, seq_length, batch_size, reuse=False,
         cond_dim=0, c=None, batch_mean=False, parameters=None):
     with tf.variable_scope("discriminator") as scope:
         if reuse:

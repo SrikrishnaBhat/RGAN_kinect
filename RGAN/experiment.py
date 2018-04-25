@@ -222,13 +222,13 @@ for epoch in range(num_epochs):
         sigma_iter = 0
         that_change = sigma_opt_thresh*2
         old_that = 0
-        while that_change > sigma_opt_thresh and sigma_iter < sigma_opt_iter:
-            sess.run(sigma_solver, feed_dict={eval_real_PH: eval_eval_real, eval_sample_PH: eval_eval_sample})
-            sess.run(sigma)
-            that_np = sess.run(that, feed_dict={eval_real_PH: eval_eval_real, eval_sample_PH: eval_eval_sample})
-            that_change = np.abs(that_np - old_that)
-            old_that = that_np
-            sigma_iter += 1
+        # while that_change > sigma_opt_thresh and sigma_iter < sigma_opt_iter:
+        #     sess.run(sigma_solver, feed_dict={eval_real_PH: eval_eval_real, eval_sample_PH: eval_eval_sample})
+        #     sess.run(sigma)
+        #     that_np = sess.run(that, feed_dict={eval_real_PH: eval_eval_real, eval_sample_PH: eval_eval_sample})
+        #     that_change = np.abs(that_np - old_that)
+        #     old_that = that_np
+        #     sigma_iter += 1
         #opt_sigma = sess.run(sigma)
         if epoch == 0:
             eval_test_real_PH = tf.placeholder(tf.float32, eval_test_real.shape)
@@ -237,17 +237,6 @@ for epoch in range(num_epochs):
             mmd_calc = mix_rbf_mmd2_and_ratio(eval_test_real_PH, eval_test_sample_PH, biased=False, sigmas=sigma)
         #mmd2, that_np = sess.run(mix_rbf_mmd2_and_ratio(eval_test_real, eval_test_sample,biased=False, sigmas=sigma))
         mmd2, that_np = sess.run(mmd_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
-        if not ((len(eval_test_real < 1)> 0) and (len(eval_test_real > -1)>0)):
-            print(eval_real)
-            np.save('experiments/data/eval_test_real_{}.csv'.format(epoch), eval_test_real)
-            np.save('experiments/data/eval_test_sample_{}.csv'.format(epoch), eval_test_sample)
-            XX, XY, YY, d = sess.run(kernel_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
-            XX_df = pd.DataFrame(XX)
-            XX_df.to_csv('experiments/data/XX_{}.csv'.format(epoch))
-            XY_df = pd.DataFrame(XY)
-            XY_df.to_csv('experiments/data/XY_{}.csv'.format(epoch))
-            YY_df = pd.DataFrame(YY)
-            YY_df.to_csv('experiments/data/YY_{}.csv'.format(epoch))
        
         ## save parameters
         if mmd2 < best_mmd2_so_far and epoch > 10:
@@ -301,6 +290,8 @@ for epoch in range(num_epochs):
     if epoch % 50 == 0:
         model.dump_parameters(identifier + '_' + str(epoch), sess)
     gc.collect()
+    if (epoch+1)%25==0:
+        break
 
 #trace.flush()
 #plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)
