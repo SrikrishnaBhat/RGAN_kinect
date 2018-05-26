@@ -17,8 +17,6 @@ from mmd import rbf_mmd2, median_pairwise_distance, mix_rbf_mmd2_and_ratio
 import mmd
 import pandas as pd
 
-import gc
-
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 # --- get settings --- #
@@ -47,11 +45,11 @@ epoch = 150
 
 # --- build model --- #
 
-Z, X, CG, CD, CS = model.create_placeholders(batch_size, seq_length, num_signals, cond_dim)
+Z, X, CG, CD, CS = model.create_placeholders(batch_size, seq_length, latent_dim, num_generated_features, cond_dim)
 
-discriminator_vars = ['hidden_units_d', 'seq_length', 'cond_dim', 'batch_size', 'batch_mean']
+discriminator_vars = ['hidden_units_d', 'seq_length', 'cond_dim', 'batch_size', 'batch_mean', 'latent_dim']
 discriminator_settings = dict((k, settings[k]) for k in discriminator_vars)
-generator_vars = ['hidden_units_g', 'seq_length', 'batch_size', 
+generator_vars = ['hidden_units_g', 'seq_length', 'batch_size', 'latent_dim', 
                   'num_generated_features', 'cond_dim', 'learn_scale']
 generator_settings = dict((k, settings[k]) for k in generator_vars)
 
@@ -66,6 +64,8 @@ D_solver, G_solver, priv_accountant = model.GAN_solvers(D_loss, G_loss, learning
         batches_per_lot=batches_per_lot, sigma=dp_sigma, dp=dp)
 G_sample = model.generator(Z, **generator_settings, reuse=True, c=CG)
 
+saver = tf.train.Saver()
+
 # --- evaluation --- #
 
 # frequency to do visualisations
@@ -75,7 +75,8 @@ eval_freq=1
 
 # get heuristic bandwidth for mmd kernel from evaluation samples
 heuristic_sigma_training = median_pairwise_distance(samples['vali'])
-best_mmd2_so_far = 1000
+# best_mmd2_so_far = 1000
+best_rmse_so_far = 1000000
 
 # optimise sigma using that (that's t-hat)
 batch_multiplier = 5000//batch_size
@@ -84,10 +85,12 @@ eval_eval_size = int(0.2*eval_size)
 eval_real_PH = tf.placeholder(tf.float32, [eval_eval_size, 1, num_generated_features])
 eval_sample_PH = tf.placeholder(tf.float32, [eval_eval_size, 1, num_generated_features])
 n_sigmas = 2
-sigma = tf.get_variable(name='sigma', shape=n_sigmas, initializer=tf.constant_initializer(value=np.power(heuristic_sigma_training, np.linspace(-1, 3, num=n_sigmas))))
-mmd2, that = mix_rbf_mmd2_and_ratio(eval_real_PH, eval_sample_PH, sigma)
-with tf.variable_scope("SIGMA_optimizer"):
-    sigma_solver = tf.train.RMSPropOptimizer(learning_rate=0.05).minimize(-that, var_list=[sigma])
+sigma = tf.get_variable(name='sigma', shape=n_sigmas, initializer=tf.constant_initializer(value=np.power(heuristic_sigma_training, np.linspace(-1, latent_dim, num=n_sigmas))))
+# mmd2, that = mix_rbf_mmd2_and_ratio(eval_real_PH, eval_sample_PH, sigma)
+rmse = None #tf.reduce_mean(tf.reduce_sum((eval_real_PH - eval_sample_PH)**2))
+
+# with tf.variable_scope("SIGMA_optimizer"):
+#     sigma_solver = tf.train.RMSPropOptimizer(learning_rate=0.05).minimize(-that, var_list=[sigma])
     #sigma_solver = tf.train.AdamOptimizer().minimize(-that, var_list=[sigma])
     #sigma_solver = tf.train.AdagradOptimizer(learning_rate=0.1).minimize(-that, var_list=[sigma])
 sigma_opt_iter = 2000
@@ -106,7 +109,7 @@ target_eps = [0.125, 0.25, 0.5, 1, 2, 4, 8]
 #trace.write('epoch time D_loss G_loss mmd2 that pdf real_pdf\n')
 
 # --- train --- #
-train_vars = ['batch_size', 'D_rounds', 'G_rounds', 'use_time', 'seq_length', 
+train_vars = ['batch_size', 'D_rounds', 'G_rounds', 'use_time', 'seq_length', 'latent_dim',
               'num_generated_features', 'cond_dim', 'max_val',
               'WGAN_clip', 'one_hot']
 train_settings = dict((k, settings[k]) for k in train_vars)
@@ -123,38 +126,38 @@ for epoch in range(num_epochs):
                                         D_loss, G_loss,
                                         #D_logit_real, D_logit_fake,
                                         #conv, layer, w,
-                                        D_solver, G_solver, 
+                                        D_solver, G_solver,
                                         **train_settings)
    
     # compute mmd2 and, if available, prob density
     if epoch % eval_freq == 0:
         ## how many samples to evaluate with?
-        validation = np.float32(samples['vali'][np.random.choice(len(samples['vali']), size=batch_multiplier*batch_size), :seq_length-20, :])
-        eval_Z = validation[:, :seq_length-20, :]#model.sample_Z(eval_size, seq_length, use_time)
+        validation = np.float32(samples['vali'][np.random.choice(len(samples['vali']), size=batch_multiplier*batch_size), :, :])
+        eval_Z = validation[:, :-latent_dim, :]#model.sample_Z(eval_size, seq_length, use_time)
         if 'eICU_task' in data:
             eval_C = labels['vali'][np.random.choice(labels['vali'].shape[0], eval_size), :]
         else:
             eval_C = model.sample_C(eval_size, cond_dim, max_val, one_hot)
-        eval_sample = np.empty(shape=(eval_size, 20, num_signals))
+        eval_sample = np.empty(shape=(eval_size, latent_dim, num_signals))
         for i in range(batch_multiplier):
             if CGAN:
                 eval_sample[i*batch_size:(i+1)*batch_size, :, :] = sess.run(G_sample, feed_dict={Z: eval_Z[i*batch_size:(i+1)*batch_size], CG: eval_C[i*batch_size:(i+1)*batch_size]})
             else:
                 eval_sample[i*batch_size:(i+1)*batch_size, :, :] = sess.run(G_sample, feed_dict={Z: eval_Z[i*batch_size:(i+1)*batch_size]})
         eval_sample = np.float32(eval_sample)
-        eval_real = validation[:, -20:, :]#np.float32(samples['vali'][np.random.choice(len(samples['vali']), size=batch_multiplier*batch_size), :, :])
+        eval_real = validation[:, -latent_dim:, :]
        
-        eval_eval_real = eval_real[:eval_eval_size].reshape(-1, 20, num_generated_features)
-        eval_test_real = eval_real[eval_eval_size:].reshape(-1, 20, num_generated_features)
-        eval_eval_sample = eval_sample[:eval_eval_size].reshape(-1, 20, num_generated_features)
-        eval_test_sample = eval_sample[eval_eval_size:].reshape(-1, 20, num_generated_features)
+        eval_eval_real = eval_real[:eval_eval_size].reshape(-1, latent_dim, num_generated_features)
+        eval_test_real = eval_real[eval_eval_size:].reshape(-1, latent_dim, num_generated_features)
+        eval_eval_sample = eval_sample[:eval_eval_size].reshape(-1, latent_dim, num_generated_features)
+        eval_test_sample = eval_sample[eval_eval_size:].reshape(-1, latent_dim, num_generated_features)
         
         ## MMD
         # reset ADAM variables
         sess.run(tf.initialize_variables(sigma_opt_vars))
         sigma_iter = 0
-        that_change = sigma_opt_thresh*2
-        old_that = 0
+        # that_change = sigma_opt_thresh*2
+        # old_that = 0
         #while that_change > sigma_opt_thresh and sigma_iter < sigma_opt_iter:
         #    sess.run(sigma_solver, feed_dict={eval_real_PH: eval_eval_real, eval_sample_PH: eval_eval_sample})
         #    sess.run(sigma)
@@ -166,16 +169,23 @@ for epoch in range(num_epochs):
         if epoch == 0:
             eval_test_real_PH = tf.placeholder(tf.float32, eval_test_real.shape)
             eval_test_sample_PH = tf.placeholder(tf.float32, eval_test_sample.shape)
-            kernel_calc = mmd._mix_rbf_kernel(eval_test_real_PH, eval_test_sample_PH, sigma, None)
-            mmd_calc = mix_rbf_mmd2_and_ratio(eval_test_real_PH, eval_test_sample_PH, biased=False, sigmas=sigma)
+            # kernel_calc = mmd._mix_rbf_kernel(eval_test_real_PH, eval_test_sample_PH, sigma, None)
+            # mmd_calc = mix_rbf_mmd2_and_ratio(eval_test_real_PH, eval_test_sample_PH, biased=False, sigmas=sigma)
+            rmse_ind_mean = tf.reduce_mean((eval_test_real_PH - eval_test_sample_PH)**2, 2)**0.5
+            rmse_calc = tf.reduce_mean(tf.reduce_mean(rmse_ind_mean, 1))
         #mmd2, that_np = sess.run(mix_rbf_mmd2_and_ratio(eval_test_real, eval_test_sample,biased=False, sigmas=sigma))
-        mmd2, that_np = sess.run(mmd_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
-       
+        # mmd2, that_np = sess.run(mmd_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
+        rmse = sess.run(rmse_calc, feed_dict={eval_test_real_PH: eval_test_real, eval_test_sample_PH: eval_test_sample})
+
         ## save parameters
-        if mmd2 < best_mmd2_so_far and epoch > 10:
+        # if mmd2 < best_mmd2_so_far and epoch > 10:
+        if rmse < best_rmse_so_far and epoch > 10:
             best_epoch = epoch
-            best_mmd2_so_far = mmd2
-            model.dump_parameters(identifier + '_' + str(epoch), sess)
+            # best_mmd2_so_far = mmd2
+            best_rmse_so_far = rmse
+            #model.dump_parameters(identifier + '_' + str(epoch), sess)
+            save_path = saver.save(sess, 'experiments/parameters/krishna_dance_params/krishna_dance_{}.ckpt'.format(epoch))
+            print('Model parameters saved at: {}'.format(save_path))
        
         ## prob density (if available)
         if not pdf is None:
@@ -186,33 +196,19 @@ for epoch in range(num_epochs):
             pdf_real = 'NA'
     else:
         # report nothing this epoch
-        mmd2 = 'NA'
+        # mmd2 = 'NA'
+        rmse = 'NA'
         that = 'NA'
         pdf_sample = 'NA'
         pdf_real = 'NA'
-    
-    ## get 'spent privacy'
-    #if dp:
-    #    spent_eps_deltas = priv_accountant.get_privacy_spent(sess, target_eps=target_eps)
-    #    # get the moments
-    #    deltas = []
-    #    for (spent_eps, spent_delta) in spent_eps_deltas:
-    #        deltas.append(spent_delta)
-    #    dp_trace.write(str(epoch) + ' ' + ' '.join(map(str, deltas)) + '\n')
-    #    if epoch % 10 == 0: dp_trace.flush()
 
-    ## print
     t = time() - t0
     try:
-        print('%d\t%.2f\t%.4f\t%.4f\t%.5f\t%.2f\t%.2f' % (epoch, t, D_loss_curr, G_loss_curr, mmd2, pdf_sample, pdf_real))
+        # print('%d\t%.2f\t%.4f\t%.4f\t%.5f\t%.2f\t%.2f' % (epoch, t, D_loss_curr, G_loss_curr, mmd2, pdf_sample, pdf_real))
+        print('%d\t%.2f\t%.4f\t%.4f\t%.5f\t%.2f\t%.2f' % (epoch, t, D_loss_curr, G_loss_curr, rmse, pdf_sample, pdf_real))
     except TypeError:       # pdf are missing (format as strings)
-        print('%d\t%.2f\t%.4f\t%.4f\t%.5f\t %s\t %s' % (epoch, t, D_loss_curr, G_loss_curr, mmd2, pdf_sample, pdf_real))
-
-    ## save trace
-    #trace.write(' '.join(map(str, [epoch, t, D_loss_curr, G_loss_curr, mmd2, that_np, pdf_sample, pdf_real])) + '\n')
-    #if epoch % 10 == 0: 
-    #    trace.flush()
-    #    plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)
+        # print('%d\t%.2f\t%.4f\t%.4f\t%.5f\t %s\t %s' % (epoch, t, D_loss_curr, G_loss_curr, mmd2, pdf_sample, pdf_real))
+        print('%d\t%.2f\t%.4f\t%.4f\t%.5f\t %s\t %s' % (epoch, t, D_loss_curr, G_loss_curr, rmse, pdf_sample, pdf_real))
 
     if shuffle:     # shuffle the training data 
         perm = np.random.permutation(samples['train'].shape[0])
@@ -221,8 +217,8 @@ for epoch in range(num_epochs):
             labels['train'] = labels['train'][perm]
     
     if epoch % 50 == 0:
-        model.dump_parameters(identifier + '_' + str(epoch), sess)
+        save_path = saver.save(sess, 'experiments/parameters/krishna_dance_params/krishna_dance_{}.ckpt'.format(epoch))
+        print('Model parameters saved at: {}'.format(save_path))
 
-#trace.flush()
-#plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)
-model.dump_parameters(identifier + '_' + str(epoch), sess)
+save_path = saver.save(sess, 'experiments/parameters/krishna_dance_params/krishna_dance_{}.ckpt'.format(epoch))
+print('Model parameters saved at: {}'.format(save_path))

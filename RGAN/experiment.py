@@ -17,10 +17,9 @@ from mmd import rbf_mmd2, median_pairwise_distance, mix_rbf_mmd2_and_ratio
 import mmd
 import pandas as pd
 
-import gc
-
 tf.logging.set_verbosity(tf.logging.ERROR)
 
+print("Getting the settings")
 # --- get settings --- #
 # parse command line arguments, or use defaults
 parser = utils.rgan_options_parser()
@@ -37,13 +36,13 @@ for (k, v) in settings.items(): print(v, '\t',  k)
 # add the settings to local environment
 # WARNING: at this point a lot of variables appear
 locals().update(settings)
-json.dump(settings, open('./experiments/settings/' + identifier + '.txt', 'w'), indent=0)
+#json.dump(settings, open('./experiments/settings/' + identifier + '.txt', 'w'), indent=0)
 epoch = 150
 
-if not data == 'load':
-    data_path = './experiments/data/' + identifier + '.data.npy'
-    np.save(data_path, {'samples': samples, 'pdf': pdf, 'labels': labels})
-    print('Saved training data to', data_path)
+#if not data == 'load':
+#    data_path = './experiments/data/' + identifier + '.data.npy'
+#    np.save(data_path, {'samples': samples, 'pdf': pdf, 'labels': labels})
+#    print('Saved training data to', data_path)
 
 # --- build model --- #
 
@@ -84,7 +83,6 @@ eval_eval_size = int(0.2*eval_size)
 eval_real_PH = tf.placeholder(tf.float32, [eval_eval_size, seq_length, num_generated_features])
 eval_sample_PH = tf.placeholder(tf.float32, [eval_eval_size, seq_length, num_generated_features])
 n_sigmas = 2
-print(np.power(heuristic_sigma_training))
 sigma = tf.get_variable(name='sigma', shape=n_sigmas, initializer=tf.constant_initializer(value=np.power(heuristic_sigma_training, np.linspace(-1, 3, num=n_sigmas))))
 print((eval_real_PH.shape, eval_sample_PH.shape))
 mmd2, that = mix_rbf_mmd2_and_ratio(eval_real_PH, eval_sample_PH, sigma)
@@ -98,63 +96,6 @@ sigma_opt_vars = [var for var in tf.global_variables() if 'SIGMA_optimizer' in v
 
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
-
-vis_Z = model.sample_Z(batch_size, seq_length, latent_dim, use_time)
-if CGAN:
-    vis_C = model.sample_C(batch_size, cond_dim, max_val, one_hot)
-    if 'mnist' in data:
-        if one_hot:
-            if cond_dim == 6:
-                vis_C[:6] = np.eye(6)
-            elif cond_dim == 3:
-                vis_C[:3] = np.eye(3)
-                vis_C[3:6] = np.eye(3)
-            else:
-                raise ValueError(cond_dim)
-        else:
-            if cond_dim == 6:
-                vis_C[:6] = np.arange(cond_dim)
-            elif cond_dim == 3:
-                vis_C = np.tile(np.arange(3), 2)
-            else:
-                raise ValueError(cond_dim)
-    elif 'eICU_task' in data:
-        vis_C = labels['train'][np.random.choice(labels['train'].shape[0], batch_size, replace=False), :]
-    vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z, CG: vis_C})
-else:
-    vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z})
-    vis_C = None
-
-vis_real_indices = np.random.choice(len(samples['vali']), size=6)
-vis_real = np.float32(samples['vali'][vis_real_indices, :, :])
-if not labels['vali'] is None:
-    vis_real_labels = labels['vali'][vis_real_indices]
-else:
-    vis_real_labels = None
-if data == 'mnist':
-    if predict_labels:
-        assert labels['vali'] is None
-        n_labels = 1
-        if one_hot: 
-            n_labels = 6
-            lab_votes = np.argmax(vis_real[:, :, -n_labels:], axis=2)
-        else:
-            lab_votes = vis_real[:, :, -n_labels:]
-        labs, _ = mode(lab_votes, axis=1) 
-        samps = vis_real[:, :, :-n_labels]
-    else:
-        labs = None
-        samps = vis_real
-    if multivariate_mnist:
-        plotting.save_mnist_plot_sample(samps.reshape(-1, seq_length**2, 1), 0, identifier + '_real', n_samples=6, labels=labs)
-    else:
-        plotting.save_mnist_plot_sample(samps, 0, identifier + '_real', n_samples=6, labels=labs)
-elif 'eICU' in data:
-    plotting.vis_eICU_patients_downsampled(vis_real, resample_rate_in_min, 
-            identifier=identifier + '_real', idx=0)
-else:
-    plotting.save_plot_sample(vis_real, 0, identifier + '_real', n_samples=6, 
-                            num_epochs=num_epochs)
 
 # for dp
 target_eps = [0.125, 0.25, 0.5, 1, 2, 4, 8]
@@ -182,17 +123,6 @@ for epoch in range(num_epochs):
                                         D_loss, G_loss,
                                         D_solver, G_solver, 
                                         **train_settings)
-    # -- eval -- #
-
-    # visualise plots of generated samples, with/without labels
-    #if epoch % vis_freq == 0:
-    #    if CGAN:
-    #        vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z, CG: vis_C})
-    #    else:
-    #        vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z})
-    #    plotting.visualise_at_epoch(vis_sample, data, 
-    #            predict_labels, one_hot, epoch, identifier, num_epochs,
-    #            resample_rate_in_min, multivariate_mnist, seq_length, labels=vis_C)
    
     # compute mmd2 and, if available, prob density
     if epoch % eval_freq == 0:
@@ -289,9 +219,6 @@ for epoch in range(num_epochs):
     
     if epoch % 50 == 0:
         model.dump_parameters(identifier + '_' + str(epoch), sess)
-    gc.collect()
-    if (epoch+1)%25==0:
-        break
 
 #trace.flush()
 #plotting.plot_trace(identifier, xmax=num_epochs, dp=dp)

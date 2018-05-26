@@ -25,13 +25,21 @@ def get_samples_and_labels(settings):
     perform test/train split as necessary, and reform into 'samples' and 'labels'
     dictionaries.
     """
+    print("Getting samples from settings")
     if settings['data_load_from']:
         data_path = './experiments/data/' + settings['data_load_from'] + '.data.npy'
         print('Loading data from', data_path)
-        samples, pdf, labels = get_data('load', data_path)
-        train, vali, test = samples['train'], samples['vali'], samples['test']
-        train_labels, vali_labels, test_labels = labels['train'], labels['vali'], labels['test']
-        del samples, labels
+        pdf = None
+        # samples, pdf, labels = get_data('load', data_path)
+        # train, vali, test = samples['train'], samples['vali'], samples['test']
+        # train_labels, vali_labels, test_labels = labels['train'], labels['vali'], labels['test']
+        # del samples, labels
+        train, test, vali = get_data('load', data_path)
+        labels = np.ones((train.shape[0] + test.shape[0] + vali.shape[0], 1)) * 3
+        print('Splitting labels')
+        _, _, _, labels_list = split(None, [0.6, 0.2, 0.2], normalise=False, labels=labels)
+        print('Labels split')
+        train_labels, vali_labels, test_labels = labels_list
     elif settings['data'] == 'eICU_task':
         # always load eICU
         samples, pdf, labels = get_data('eICU_task', {})
@@ -114,14 +122,12 @@ def get_data(data_type, data_options=None):
     pdf = None
     if data_type == 'load':
         data_dict = np.load(data_options).item()
-        samples = data_dict
-        pdf = None
-        #pdf = data_dict['pdf']
-        labels = {
-		    'train': np.ones(samples['train'].shape[0]),
-		    'test': np.ones(samples['test'].shape[0]),
-		    'vali': np.ones(samples['vali'].shape[0])
-		}
+        train = data_dict['train']
+        test = data_dict['test']
+        vali = data_dict['vali']
+        return train, test, vali
+        # pdf = data_dict['pdf']
+        # labels = data_dict['labels']
     elif data_type == 'sine':
         samples = sine_wave(**data_options)
     elif data_type == 'mnist':
@@ -238,29 +244,40 @@ def split(samples, proportions, normalise=False, scale=False, labels=None, rando
         random.seed(random_seed)
         np.random.seed(random_seed)
     assert np.sum(proportions) == 1
-    n_total = samples.shape[0]
-    n_train = ceil(n_total*proportions[0])
-    n_test = ceil(n_total*proportions[2])
-    n_vali = n_total - (n_train + n_test)
-    # permutation to shuffle the samples
-    shuff = np.random.permutation(n_total)
-    train_indices = shuff[:n_train]
-    vali_indices = shuff[n_train:(n_train + n_vali)]
-    test_indices = shuff[(n_train + n_vali):]
-    # TODO when we want to scale we can just return the indices
-    assert len(set(train_indices).intersection(vali_indices)) == 0
-    assert len(set(train_indices).intersection(test_indices)) == 0
-    assert len(set(vali_indices).intersection(test_indices)) == 0
-    # split up the samples
-    train = samples[train_indices]
-    vali = samples[vali_indices]
-    test = samples[test_indices]
-    # apply the same normalisation scheme to all parts of the split
-    if normalise:
-        if scale: raise ValueError(normalise, scale)        # mutually exclusive
-        train, vali, test = normalise_data(train, vali, test)
-    elif scale:
-        train, vali, test = scale_data(train, vali, test)
+    if samples is not None:
+        n_total = samples.shape[0]
+        n_train = ceil(n_total*proportions[0])
+        n_test = ceil(n_total*proportions[2])
+        n_vali = n_total - (n_train + n_test)
+        # permutation to shuffle the samples
+        shuff = np.random.permutation(n_total)
+        train_indices = shuff[:n_train]
+        vali_indices = shuff[n_train:(n_train + n_vali)]
+        test_indices = shuff[(n_train + n_vali):]
+        # TODO when we want to scale we can just return the indices
+        assert len(set(train_indices).intersection(vali_indices)) == 0
+        assert len(set(train_indices).intersection(test_indices)) == 0
+        assert len(set(vali_indices).intersection(test_indices)) == 0
+        # split up the samples
+        train = samples[train_indices]
+        vali = samples[vali_indices]
+        test = samples[test_indices]
+        # apply the same normalisation scheme to all parts of the split
+        if normalise:
+            if scale: raise ValueError(normalise, scale)        # mutually exclusive
+            train, vali, test = normalise_data(train, vali, test)
+        elif scale:
+            train, vali, test = scale_data(train, vali, test)
+    else:
+        n_total = labels.shape[0]
+        n_train = ceil(n_total * proportions[0])
+        n_test = ceil(n_total * proportions[2])
+        n_vali = n_total - (n_train + n_test)
+        shuff = np.random.permutation(n_total)
+        train_indices = shuff[:n_train]
+        vali_indices = shuff[n_train:(n_train + n_vali)]
+        test_indices = shuff[(n_train + n_vali):]
+        train, vali, test = None, None, None
     if labels is None:
         return train, vali, test
     else:
@@ -933,7 +950,7 @@ def dance():
     #shape = samples.shape
     #print(shape)
     #samples = min_max_normaliser(identifier, samples)
-    samples = np.load('./data/dance_data_norm.npy')
+    samples = np.load('./experiments/data/dance_data_norm.data.npy')
     labels = np.ones((samples.shape[0], 1)) * 3
     return samples, labels
 

@@ -6,7 +6,7 @@ import os
 
 identifier = 'cristobal_dance'
 epoch = 599
-num_samples = 200
+num_samples = 28
 
 ## Generate the synthetic data ##
 data_utils.generate_synthetic(identifier, epoch, num_samples)

@@ -1,11 +1,4 @@
-RGAN/experiments/plots/*.png
-RGAN/experiments/parameters/*.npy
-RGAN_forecasting/experiments/plots/*.png
-RGAN_forecasting/experiments/parameters/*.npy
-RGAN_forecasting/experiments/data/*
-RGAN/data/*
-RGAN_forecasting/data/
-RGAN/experiments/trace/*
-RGAN_forecasting/experiments/trace/*
-RGAN_forecasting/__pycache__/*
-
+*.png
+*.csv
+*.pyc
+*.txt

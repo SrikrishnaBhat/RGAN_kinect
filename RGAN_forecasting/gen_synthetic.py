@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 identifier = 'cristobal_dance'
-epoch = 300
+epoch = 799
 num_samples = 200
 
 ## Generate the synthetic data ##

@@ -1,7 +1,10 @@
 import numpy as np
+import os
 
-input_file = '../../RGAN_forecasting/data/dance_data.npy'
-output_file = '../../RGAN_forecasting/experiments/data/dance_data_norm.data.npy'
+base_dir = '../../RGAN_forecasting'
+
+input_file = os.path.join(base_dir, 'data/dance_data.npy')
+output_file = os.path.join(base_dir, 'experiments/data/dance_data_norm.data.npy')
 identifier = 'cristobal_dance'
 
 def min_max_normalize(identifier, samples):
@@ -23,8 +26,8 @@ def min_max_normalize(identifier, samples):
          train[:, :, i] = train[:, :, i] * 2 - 1
          test[:, :, i] = vali[:, :, i] * 2 - 1
          vali[:, :, i] = vali[:, :, i] * 2 - 1
-    np.save('../../RGAN_forecasting/experiments/data/{}_max.npy'.format(identifier), max_list)
-    np.save('../../RGAN_forecasting/experiments/data/{}_min.npy'.format(identifier), min_list)
+    np.save(os.path.join(base_dir, 'experiments/data/{}_max.npy'.format(identifier)), max_list)
+    np.save(os.path.join(base_dir, 'experiments/data/{}_min.npy'.format(identifier)), min_list)
     return {'train': train, 'vali': vali, 'test': test}
 
 samples = min_max_normalize(identifier, np.load(input_file).tolist())

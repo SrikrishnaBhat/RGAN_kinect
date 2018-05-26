@@ -133,7 +133,6 @@ def train_epoch(epoch, samples, labels, sess, Z, X, CG, CD, CS, D_loss, G_loss, 
             else:
                 _ = sess.run(G_solver,
                         feed_dict={Z: sample_Z(batch_size, seq_length, latent_dim, use_time=use_time)})
-            g_time[batch_idx, g] = time.time() - start_time
     # at the end, get the loss
     if cond_dim > 0:
         D_loss_curr, G_loss_curr = sess.run([D_loss, G_loss], feed_dict={X: X_mb, Z: sample_Z(batch_size, seq_length, latent_dim, use_time=use_time), CG: Y_mb, CD: Y_mb})
@@ -305,6 +304,7 @@ def generator(z, hidden_units_g, seq_length, batch_size, num_generated_features,
             #inputs = tf.concat([repeated_encoding, z], 2)
         else:
             inputs = z
+        print(inputs.shape)
 
         cell = LSTMCell(num_units=hidden_units_g,
                            state_is_tuple=True,
@@ -417,6 +417,7 @@ def sample_trained_model(settings, epoch, num_samples, Z_samples=None, C_samples
     if Z_samples is None:
         Z_samples = sample_Z(num_samples, settings['seq_length'], settings['latent_dim'], settings['use_time'], use_noisy_time=False)
     else:
+        print(Z_samples.shape)
         assert Z_samples.shape[0] == num_samples
     # create the generator (GAN or CGAN)
     if C_samples is None:

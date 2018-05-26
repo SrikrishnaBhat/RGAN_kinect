@@ -11,7 +11,7 @@ if not os.path.exists(result_dir):
 
 file_list = os.listdir(home_dir)
 ROWS = 80 #Number of rows or timesteps
-STRIDE = 3
+STRIDE = 5
 COLUMNS = 75
 
 def get_len_from_dir(file_list):
@@ -61,8 +61,7 @@ for file_name in file_list:
         start = i
         temp_array = np.zeros((ROWS, input_array.shape[1]))
         temp_array[:ROWS, :] = input_array[start:start+ROWS, :]
-        inter_array[start:start + ROWS, :, :] = centre_points(temp_array)
-    np.random.shuffle(inter_array)
+        inter_array[start:start + ROWS, :, :] = temp_array #centre_points(temp_array)
     proportions = (inter_array.shape[0] * SPLIT_RATIO).astype('int64')
     data_dict['train'][indexing[0]:indexing[0] + proportions[0], :, :] = inter_array[:proportions[0], :, :]
     data_dict['test'][indexing[1]:indexing[1] + proportions[1], :, :] = inter_array[proportions[0]:sum(proportions[:2]), :, :]

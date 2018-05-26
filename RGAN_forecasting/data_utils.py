@@ -1649,7 +1649,7 @@ def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
         from random import randint
         print(data_dict['vali'].shape)
         number = randint(0, len(data_dict['vali'])-n_train)
-        Z_samples = data_dict['vali'][number:number+n_train, :-20, :]
+        Z_samples = data_dict['vali'][number:number+n_train, :-3, :]
         print(Z_samples.shape)
         synth_data = model.sample_trained_model(settings, epoch, n_train, data_dict['vali'], Z_samples=Z_samples)
         print(synth_data.shape)
@@ -1665,7 +1665,7 @@ def generate_synthetic(identifier, epoch, n_train, predict_labels=False):
 
         for i in range(dims[0]):
             print(i)
-            fin_data[i, -20:, :] = synth_data[i, :, :]
+            fin_data[i, -3:, :] = synth_data[i, :, :]
             for j in range(dims[-1]):
                 stdized_data = (fin_data[i, :, j] + 1)/2
                 fin_data[i, :, j] = (stdized_data * (max_list[j] - min_list[j])) + min_list[j]
